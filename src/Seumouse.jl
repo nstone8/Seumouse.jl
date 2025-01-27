@@ -1,6 +1,6 @@
 module Seumouse
 
-using DataFrames, CSVFiles, FileIO, SparseArrays
+using DataFrames, CSVFiles, FileIO, SparseArrays, Statistics, RecipesBase, StatsBase
 
 export mouse
 
@@ -30,7 +30,7 @@ mouse(meta,expression,other...)
 Create a container for Seurat data from csv files. The required tables can be extracted
 a Seurat object `obj` in R using expressions such as...
 - meta: `as.data.frame(obj[[]])`
-- expression: `as.data.frame(GetAssayData(object = obj[["integrated"]], layer = "data"))`
+- expression: `as.data.frame(GetAssayData(object = obj[["RNA"]], layer = "data"))`
 - umap: `as.data.frame(obj[["umap"]][[]])`
 """
 function mouse(metafile::AbstractString,expressionfile::AbstractString,otherfiles::AbstractString...)
@@ -58,6 +58,50 @@ function mouse(metafile::AbstractString,expressionfile::AbstractString,otherfile
 
     #hcat without copying and return. need to strip the barcode column from ef so all cols are unique
     hcat(df,select(ef,Not(:barcode)),copycols=false)
+end
+
+#make a plot recipe for genemaps
+"""
+```julia
+genemap(mouse,group,genes;normrows=true)
+```
+Plot a `heatmap` of gene expression values. The x axis will be the unique values of the column `group` in
+the `DataFrame` `mouse`. The y axis will be the mean expression values of `genes` in these groups. If `normrows=true`,
+(the default) each row will be normalized by z-score.
+"""
+@userplot struct GeneMap
+    args::Tuple{<:AbstractDataFrame,<:Any,<:Any}
+end
+
+@recipe function f(gm::GeneMap)
+    #pull out our args
+    m = gm.args[1]
+    column = gm.args[2]
+    genes = gm.args[3]
+    :normrows --> true
+    groups = Set(m[:,column]) |> collect |> sort
+    markermat =[begin
+                    this_group = filter(m, view = true) do row
+                        row[column] == g
+                    end
+                    mean(this_group[:,gene]) 
+                end
+                for gene in genes, g in groups]
+    #zscore if we're asked to
+    plotmat = if plotattributes[:normrows]
+        vcat(map(1:size(markermat)[1]) do i
+                 zscore(markermat[i,:]) |> permutedims
+             end...)
+    else
+        markermat
+    end
+    #subtracting 0.5 from the tick positions to center the labels
+    #also make sure the values are strings, we want the axes to be
+    #categorical
+    :xticks --> (collect(1:length(groups)) .- 0.5, string.(groups))
+    :yticks --> (collect(1:length(genes)) .- 0.5, string.(genes))
+    :seriestype := :heatmap
+    (groups,genes,plotmat)
 end
 
 end # module Seumouse
