@@ -95,13 +95,13 @@ end
     else
         markermat
     end
-    #subtracting 0.5 from the tick positions to center the labels
+    #subtracting offsets from the tick positions to center the labels
     #also make sure the values are strings, we want the axes to be
     #categorical
     :xticks --> (collect(1:length(groups)) .- 0.5, string.(groups))
     :yticks --> (collect(1:length(genes)) .- 0.5, string.(genes))
     :seriestype := :heatmap
-    (groups,genes,plotmat)
+    (string.(groups),string.(genes),plotmat)
 end
 
 end # module Seumouse
