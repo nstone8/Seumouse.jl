@@ -1,7 +1,7 @@
 name = "Seumouse"
 uuid = "97b91fb3-a4d2-4288-be57-92bc2da75bbe"
 authors = ["Nick Stone <nicholasestone@proton.me>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 CSVFiles = "5d742f6a-9f54-50ce-8119-2520741973ca"

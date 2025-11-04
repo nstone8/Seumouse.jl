@@ -38,7 +38,8 @@ function mouse(metafile::AbstractString,expressionfile::AbstractString,otherfile
         frame = load(f) |> DataFrame
         rename!(frame,1 => :barcode)
     end
-    df = innerjoin(nonexpressionframes...,on = :barcode)
+    #don't need a join if we only have a metafile
+    df = isempty(otherfiles) ? nonexpressionframes[1] : innerjoin(nonexpressionframes...,on = :barcode)
     
     #get our expression object
     ef = expressionframe(expressionfile)
